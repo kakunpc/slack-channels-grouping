@@ -191,9 +191,10 @@ class ChannelGrouper {
   }
 
   protected applyGrouing($channelItems: JQuery, prefixes: string[]): void {
+    var $this = this
     $channelItems.each(function (index: number, channelItem: HTMLElement) {
       const $channelName = $(channelItem).find(CHANNEL_NAME_SELECTOR);
-      const prefix: string = prefixes[index];
+      const prefix: string = prefixes[index]
       const isLoneliness = prefixes[index - 1] !== prefix && prefixes[index + 1] !== prefix;
       const isParent = prefixes[index - 1] !== prefix && prefixes[index + 1] === prefix;
       const isLastChild = prefixes[index - 1] === prefix && prefixes[index + 1] !== prefix;
@@ -222,17 +223,70 @@ class ChannelGrouper {
           separator = '├';
         }
 
-        $channelName
+        var empty = $channelName
           .removeClass('scg-ch-parent scg-ch-child')
-          .addClass(isParent ? 'scg-ch-parent' : 'scg-ch-child')
+          //.addClass(isParent ? 'scg-ch-parent' : 'scg-ch-child')
+          .addClass('scg-ch-child')
           .empty()
-          .append($('<span>').addClass('scg-ch-prefix').text(prefix))
-          .append($('<span>').addClass('scg-ch-separator').text(separator))
-          .append($('<span>').addClass('scg-ch-name').text($channelName.data('scg-channel-name').replace(/(^.+?)[-_](.*)/, '$2')));
+
+        var isStar = $channelName.parents().attr("data-qa-channel-sidebar-is-starred")
+        if (isStar == null) isStar = "false";
+        const starPrefix = (isStar === "true" ? "_isStar" : "_noStar")
+        if (isParent && $('div[id="' + prefix + starPrefix + '"]').length == 0) {
+          var InsertPartition = '<div id="' + prefix + starPrefix + '" role="presentation" style="height: 26px;" class="open">' +
+            '<a class="c-link p-channel_sidebar__channel">' +
+            '<i class="c-icon c-icon--caret-down c-icon--inherit c-icon--inline" type="channel-pane-hash" aria-hidden="true"></i>' +
+            '<span class="scg-ch-prefix">' + prefix + '</span>'
+          '</a>' +
+            '</div>'
+          empty.parent().parent().before(InsertPartition);
+          var head = $('div[id="' + prefix + starPrefix + '"]');
+          head.on('click', function () {
+            head.toggleClass("open");
+            const isOpen = head.hasClass("open");
+
+            if (isOpen) {
+              head.find("i").removeClass("c-icon--caret-right")
+              head.find("i").addClass("c-icon--caret-down")
+            }
+            else {
+              head.find("i").removeClass("c-icon--caret-down")
+              head.find("i").addClass("c-icon--caret-right")
+            }
+
+            $this.UpdateChannnels(prefix + starPrefix, isOpen);
+          });
+        }
+
+        empty
+          //.append($('<span>').addClass('scg-ch-prefix').text(prefix))
+          .append($('<span>').addClass('scg-ch-prefix').text("　"))
+          //.append($('<span>').addClass('scg-ch-separator').text(separator))
+          .append($('<span>').addClass('scg-ch-name').text($channelName.data('scg-channel-name').replace(/(^.+?)[-_](.*)/, '$2')))
+          .attr('id', prefix + starPrefix);
+
+        empty.parent().css('visibility', 'visible');
+        empty.parent().parent().css('height', '26px');
+
+      }
+    });
+  }
+
+  protected UpdateChannnels($prefix: string, $isOpen: boolean): void {
+    var channels = $('span[id="' + $prefix + '"]');
+    channels.each(function (index: number, channelItem: HTMLElement) {
+      if ($isOpen) {
+        $(channelItem).parent().css('visibility', 'visible');
+        $(channelItem).parent().parent().css('height', '26px');
+      }
+      else {
+        $(channelItem).parent().css('visibility', 'hidden');
+        $(channelItem).parent().parent().css('height', '0px');
       }
     });
   }
 }
+
 
 ((): void => {
   const channelObserver = new ChannelObserver();
